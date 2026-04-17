@@ -53,6 +53,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     entry.async_on_unload(entry.add_update_listener(_async_options_reload))
 
+    # Task 39: Re-pair detection — listen for device registry changes and run on startup.
+    from homeassistant.helpers.device_registry import EVENT_DEVICE_REGISTRY_UPDATED
+
+    async def _on_device_registry_update(_event) -> None:
+        await scanner.async_detect_rediscovery()
+
+    entry.async_on_unload(
+        hass.bus.async_listen(EVENT_DEVICE_REGISTRY_UPDATED, _on_device_registry_update)
+    )
+
+    await scanner.async_detect_rediscovery()
+
     # Register services and views once on first (only) setup.
     if len(hass.data[DOMAIN]) == 1:
         from .services import async_register_services, async_unregister_services

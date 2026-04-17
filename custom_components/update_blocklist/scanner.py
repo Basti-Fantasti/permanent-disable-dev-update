@@ -275,6 +275,45 @@ class Scanner:
         await self._coordinator.async_request_refresh()
         return True
 
+    async def async_detect_rediscovery(self) -> None:
+        """Scan for orphan blocks whose devices may have re-paired.
+
+        Populates registry.pending_rediscovery.
+        """
+        dev_reg = dr.async_get(self._hass)
+        ent_reg = er.async_get(self._hass)
+
+        orphans = self._registry.find_orphans(dev_reg)
+
+        pending: list[dict] = []
+
+        # Preserve entries for orphans still pending (to avoid clobbering dismissed state).
+        existing_by_orphan = {
+            item["orphan_block_id"]: item
+            for item in self._registry.pending_rediscovery
+        }
+
+        for orphan in orphans:
+            candidates = self._registry.match_rediscovery_candidates(
+                orphan, dev_reg, ent_reg
+            )
+            if not candidates:
+                continue
+            chosen = candidates[0]
+            existing = existing_by_orphan.get(orphan.id)
+            pending.append(
+                existing
+                or {
+                    "orphan_block_id": orphan.id,
+                    "candidate_device_id": chosen["device_id"],
+                    "match_type": chosen["match_type"],
+                    "detected_at": datetime.now(UTC).isoformat(),
+                }
+            )
+
+        await self._registry.async_set_pending_rediscovery(pending)
+        await self._coordinator.async_request_refresh()
+
     def start_schedule(self):
         """Install the nightly scan trigger at options[CONF_SCAN_START_TIME].
 
