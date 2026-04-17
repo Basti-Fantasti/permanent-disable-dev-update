@@ -1,0 +1,29 @@
+name: Bug report
+description: Report a bug in the Update Blocklist integration.
+labels: [bug]
+body:
+  - type: textarea
+    attributes:
+      label: What happened
+      description: Describe the problem.
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Steps to reproduce
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Home Assistant version
+    validations:
+      required: true
+  - type: input
+    attributes:
+      label: Update Blocklist version
+    validations:
+      required: true
+  - type: textarea
+    attributes:
+      label: Relevant log output
+      render: shell
