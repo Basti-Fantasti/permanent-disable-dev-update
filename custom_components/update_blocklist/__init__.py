@@ -38,10 +38,14 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     coordinator = UpdateBlocklistCoordinator(hass, registry)
     await coordinator.async_refresh()
 
+    from .scanner import Scanner
+    scanner = Scanner(hass, registry, coordinator, options)
+
     hass.data[DOMAIN][entry.entry_id] = {
         "registry": registry,
         "coordinator": coordinator,
         "options": options,
+        "scanner": scanner,
     }
 
     entry.async_on_unload(entry.add_update_listener(_async_options_reload))
