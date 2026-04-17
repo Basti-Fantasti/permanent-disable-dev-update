@@ -29,6 +29,20 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     registry = BlockRegistry(hass)
     await registry.async_load()
 
+    # Task 41: Startup cleanup — re-disable entities that are part of an active block
+    # but have disabled_by=None (e.g., left enabled by an interrupted scan).
+    from homeassistant.helpers import entity_registry as er
+    _ent_reg = er.async_get(hass)
+    for _block in registry.all_blocks():
+        if _block.status != "active":
+            continue
+        for _eid in _block.update_entity_ids:
+            _existing = _ent_reg.async_get(_eid)
+            if _existing is not None and _existing.disabled_by is None:
+                _ent_reg.async_update_entity(
+                    _eid, disabled_by=er.RegistryEntryDisabler.INTEGRATION
+                )
+
     options = {
         CONF_SCAN_START_TIME: entry.options.get(CONF_SCAN_START_TIME, DEFAULT_SCAN_START_TIME),
         CONF_SCAN_MAX_DURATION_MINUTES: entry.options.get(CONF_SCAN_MAX_DURATION_MINUTES, DEFAULT_SCAN_MAX_DURATION_MINUTES),
