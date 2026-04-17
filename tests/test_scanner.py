@@ -186,3 +186,50 @@ async def test_scan_block_entity_gone(hass):
 
     updated = registry.get_block(block.id)
     assert updated.last_scan_status == "entity_gone"
+
+
+async def test_scan_all_visits_blocks_in_oldest_first_order(hass):
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+    from datetime import UTC, datetime, timedelta
+
+    entry = await _setup_integration(hass)
+    runtime = hass.data[DOMAIN][entry.entry_id]
+    scanner = runtime["scanner"]
+    registry = runtime["registry"]
+
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+
+    created_blocks = []
+    for i in range(3):
+        d = dev_reg.async_get_or_create(
+            config_entry_id=entry.entry_id, identifiers={("demo", f"scanall{i}")}
+        )
+        ent_reg.async_get_or_create(
+            domain="update", platform="demo", unique_id=f"u{i}", device_id=d.id
+        )
+        b = await scanner.async_block_device(device_id=d.id, reason="")
+        # Assign last_scan_at manually so order is deterministic.
+        b.last_scan_at = (datetime.now(UTC) - timedelta(days=3 - i)).isoformat()
+        await registry.async_update_block(b)
+        created_blocks.append(b)
+
+    visited: list[str] = []
+
+    async def fake_scan_block(*, block_id: str, per_device_timeout_seconds: int) -> None:
+        visited.append(block_id)
+        b = registry.get_block(block_id)
+        b.last_scan_at = datetime.now(UTC).isoformat()
+        b.last_scan_status = "ok"
+        await registry.async_update_block(b)
+
+    scanner.async_scan_block = fake_scan_block  # type: ignore[method-assign]
+
+    await scanner.async_scan_all(
+        max_duration_seconds=60, per_device_timeout_seconds=5
+    )
+
+    # Oldest-first → the block with last_scan_at three days ago first.
+    assert visited[0] == created_blocks[0].id
+    assert visited[-1] == created_blocks[-1].id

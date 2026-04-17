@@ -191,3 +191,32 @@ class Scanner:
             return None
         finally:
             remove()
+
+    async def async_scan_all(
+        self,
+        *,
+        max_duration_seconds: int,
+        per_device_timeout_seconds: int,
+    ) -> None:
+        """Scan every block in oldest-first order, bounded by max_duration_seconds."""
+        import time
+        started = time.monotonic()
+
+        blocks = sorted(
+            self._registry.all_blocks(),
+            key=lambda b: b.last_scan_at or "",
+        )
+        for block in blocks:
+            if time.monotonic() - started >= max_duration_seconds:
+                _LOGGER.info(
+                    "Scan window elapsed; %d blocks not scanned this cycle.",
+                    len(blocks) - blocks.index(block),
+                )
+                break
+            try:
+                await self.async_scan_block(
+                    block_id=block.id,
+                    per_device_timeout_seconds=per_device_timeout_seconds,
+                )
+            except Exception:  # noqa: BLE001
+                _LOGGER.exception("Scan failed for block %s", block.id)
