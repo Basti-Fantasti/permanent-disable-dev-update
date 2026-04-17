@@ -45,8 +45,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     options = {
         CONF_SCAN_START_TIME: entry.options.get(CONF_SCAN_START_TIME, DEFAULT_SCAN_START_TIME),
-        CONF_SCAN_MAX_DURATION_MINUTES: entry.options.get(CONF_SCAN_MAX_DURATION_MINUTES, DEFAULT_SCAN_MAX_DURATION_MINUTES),
-        CONF_PER_DEVICE_TIMEOUT_SECONDS: entry.options.get(CONF_PER_DEVICE_TIMEOUT_SECONDS, DEFAULT_PER_DEVICE_TIMEOUT_SECONDS),
+        CONF_SCAN_MAX_DURATION_MINUTES: entry.options.get(
+            CONF_SCAN_MAX_DURATION_MINUTES, DEFAULT_SCAN_MAX_DURATION_MINUTES
+        ),
+        CONF_PER_DEVICE_TIMEOUT_SECONDS: entry.options.get(
+            CONF_PER_DEVICE_TIMEOUT_SECONDS, DEFAULT_PER_DEVICE_TIMEOUT_SECONDS
+        ),
     }
 
     coordinator = UpdateBlocklistCoordinator(hass, registry)
@@ -81,6 +85,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Task 41b: Listen for user-initiated re-enables of blocked entities.
     from homeassistant.helpers.entity_registry import EVENT_ENTITY_REGISTRY_UPDATED
+
     from .const import BLOCK_STATUS_USER_OVERRIDDEN
 
     _ent_reg_listener = er.async_get(hass)
@@ -112,9 +117,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     # Register services and views once on first (only) setup.
     if len(hass.data[DOMAIN]) == 1:
-        from .services import async_register_services, async_unregister_services
         from .api import async_register_views
         from .panel import async_register_panel, async_remove_panel
+        from .services import async_register_services, async_unregister_services
 
         async_register_services(hass)
         async_register_views(hass)

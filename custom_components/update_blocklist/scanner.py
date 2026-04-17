@@ -187,7 +187,7 @@ class Scanner:
         try:
             await asyncio.wait_for(done.wait(), timeout=timeout_seconds)
             return captured.get("v")
-        except asyncio.TimeoutError:
+        except TimeoutError:
             return None
         finally:
             remove()

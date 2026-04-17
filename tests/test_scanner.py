@@ -189,9 +189,10 @@ async def test_scan_block_entity_gone(hass):
 
 
 async def test_scan_all_visits_blocks_in_oldest_first_order(hass):
+    from datetime import UTC, datetime, timedelta
+
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
-    from datetime import UTC, datetime, timedelta
 
     entry = await _setup_integration(hass)
     runtime = hass.data[DOMAIN][entry.entry_id]

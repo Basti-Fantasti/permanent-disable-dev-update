@@ -1,8 +1,6 @@
 """Tests for re-pair (rediscovery) detection."""
 from __future__ import annotations
 
-from datetime import UTC, datetime
-
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.update_blocklist.const import DOMAIN
@@ -50,7 +48,6 @@ async def test_orphan_block_with_matching_unique_id_produces_pending(hass):
 
 
 async def test_orphan_without_matches_stays_empty(hass):
-    from homeassistant.helpers import device_registry as dr
 
     entry = await _setup(hass)
     runtime = hass.data[DOMAIN][entry.entry_id]

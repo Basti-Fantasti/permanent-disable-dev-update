@@ -24,7 +24,6 @@ async def test_save_then_load_roundtrip(hass):
     assert reloaded["blocks"][0]["reason"] == "test"
 
 
-import json
 
 
 async def test_save_writes_backup_of_previous_file(hass, hass_storage):

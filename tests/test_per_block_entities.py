@@ -1,6 +1,8 @@
 """Tests for per-block shadow sensor and diagnostic binary_sensor."""
 from __future__ import annotations
+
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+
 from custom_components.update_blocklist.const import DOMAIN
 
 
@@ -10,7 +12,7 @@ async def test_adding_block_creates_shadow_sensor_and_binary_sensor(hass):
     assert await hass.config_entries.async_setup(entry.entry_id)
     await hass.async_block_till_done()
     runtime = hass.data[DOMAIN][entry.entry_id]
-    block = await runtime["registry"].async_add_block(
+    await runtime["registry"].async_add_block(
         device_id="dev_wled_1",
         update_entity_ids=["update.wled_custom"],
         unique_ids=["AA:BB"],

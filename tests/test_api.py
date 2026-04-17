@@ -108,7 +108,9 @@ async def test_add_block_returns_400_for_missing_device_id(hass, hass_client):
     assert resp.status == 400
 
 
-async def test_candidate_devices_returns_only_unblocked_devices_with_update_entities(hass, hass_client):
+async def test_candidate_devices_returns_only_unblocked_devices_with_update_entities(
+    hass, hass_client
+):
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
 

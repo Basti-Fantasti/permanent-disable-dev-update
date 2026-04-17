@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 import uuid
-from dataclasses import dataclass, asdict
+from dataclasses import asdict, dataclass
 from datetime import UTC, datetime
 from typing import Any
 
@@ -31,7 +31,7 @@ class Block:
     status: str = BLOCK_STATUS_ACTIVE
 
     @classmethod
-    def from_dict(cls, data: dict[str, Any]) -> "Block":
+    def from_dict(cls, data: dict[str, Any]) -> Block:
         return cls(
             id=data["id"],
             device_id=data["device_id"],
@@ -150,8 +150,8 @@ class BlockRegistry:
         self, block: Block, device_registry, entity_registry
     ) -> list[dict[str, str]]:
         """Find devices that plausibly represent a re-paired version of `block`."""
+        from .const import MATCH_FINGERPRINT, MATCH_UNIQUE_ID
         from .identity import fingerprint_matches, generate_fingerprint
-        from .const import MATCH_UNIQUE_ID, MATCH_FINGERPRINT
 
         results: list[dict[str, str]] = []
         seen: set[str] = set()
@@ -160,12 +160,15 @@ class BlockRegistry:
             for entry in entity_registry.entities.values():
                 if entry.domain != "update":
                     continue
-                if entry.unique_id in block.unique_ids and entry.device_id:
-                    if entry.device_id not in seen:
-                        results.append(
-                            {"device_id": entry.device_id, "match_type": MATCH_UNIQUE_ID}
-                        )
-                        seen.add(entry.device_id)
+                if (
+                    entry.unique_id in block.unique_ids
+                    and entry.device_id
+                    and entry.device_id not in seen
+                ):
+                    results.append(
+                        {"device_id": entry.device_id, "match_type": MATCH_UNIQUE_ID}
+                    )
+                    seen.add(entry.device_id)
 
         for dev in device_registry.devices.values():
             if dev.id in seen:

@@ -65,6 +65,7 @@ async def test_removing_config_entry_reenables_all_entities(hass):
 async def test_startup_re_disables_blocked_entity_that_was_left_enabled(hass):
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
+
     from custom_components.update_blocklist.registry import BlockRegistry
 
     dev_reg = dr.async_get(hass)
@@ -132,9 +133,9 @@ async def test_user_manually_reenables_marks_block_as_user_overridden(hass):
 
 async def test_setup_stores_effective_options(hass):
     from custom_components.update_blocklist.const import (
-        CONF_SCAN_START_TIME,
-        CONF_SCAN_MAX_DURATION_MINUTES,
         CONF_PER_DEVICE_TIMEOUT_SECONDS,
+        CONF_SCAN_MAX_DURATION_MINUTES,
+        CONF_SCAN_START_TIME,
     )
 
     entry = MockConfigEntry(

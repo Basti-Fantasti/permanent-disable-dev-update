@@ -1,6 +1,8 @@
 """Tests for integration-level sensors."""
 from __future__ import annotations
+
 from pytest_homeassistant_custom_component.common import MockConfigEntry
+
 from custom_components.update_blocklist.const import DOMAIN
 
 

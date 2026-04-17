@@ -43,6 +43,4 @@ def fingerprint_matches(a: Fingerprint, b: Fingerprint) -> bool:
         return True
     # Prefix tolerance: one name is a prefix of the other within 4 extra chars.
     short, long = sorted([name_a, name_b], key=len)
-    if long.startswith(short) and len(long) - len(short) <= 4:
-        return True
-    return False
+    return long.startswith(short) and len(long) - len(short) <= 4
