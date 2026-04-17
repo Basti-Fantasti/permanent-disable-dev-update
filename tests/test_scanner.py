@@ -1,6 +1,8 @@
 """Tests for the scanner."""
 from __future__ import annotations
 
+import asyncio
+
 from pytest_homeassistant_custom_component.common import MockConfigEntry
 
 from custom_components.update_blocklist.const import DOMAIN
@@ -83,3 +85,104 @@ async def test_unblock_reenables_update_entity_and_removes_block(hass):
 
     assert registry.get_block(block.id) is None
     assert ent_reg.async_get(update.entity_id).disabled_by is None
+
+
+async def test_scan_block_captures_latest_version(hass):
+    """A scan cycle re-enables, waits for latest_version, captures it, re-disables."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    entry = await _setup_integration(hass)
+    runtime = hass.data[DOMAIN][entry.entry_id]
+    scanner = runtime["scanner"]
+    registry = runtime["registry"]
+
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+    device = dev_reg.async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={("demo", "scan1")}
+    )
+    update = ent_reg.async_get_or_create(
+        domain="update", platform="demo", unique_id="u", device_id=device.id
+    )
+
+    block = await scanner.async_block_device(device_id=device.id, reason="")
+    await hass.async_block_till_done()
+
+    # Simulate integration populating latest_version shortly after re-enable.
+    async def _populate():
+        # Wait for the scanner to re-enable the entity, then set state.
+        for _ in range(50):
+            if ent_reg.async_get(update.entity_id).disabled_by is None:
+                hass.states.async_set(
+                    update.entity_id, "on",
+                    {"installed_version": "1.0.0", "latest_version": "1.2.3"},
+                )
+                return
+            await asyncio.sleep(0.01)
+
+    task = asyncio.create_task(_populate())
+    await scanner.async_scan_block(block_id=block.id, per_device_timeout_seconds=5)
+    await task
+
+    updated = registry.get_block(block.id)
+    assert updated.last_known_version == "1.2.3"
+    assert updated.last_scan_status == "ok"
+    assert ent_reg.async_get(update.entity_id).disabled_by == er.RegistryEntryDisabler.INTEGRATION
+
+
+async def test_scan_block_timeout_records_timeout_status(hass):
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    entry = await _setup_integration(hass)
+    runtime = hass.data[DOMAIN][entry.entry_id]
+    scanner = runtime["scanner"]
+    registry = runtime["registry"]
+
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+    device = dev_reg.async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={("demo", "scan2")}
+    )
+    ent_reg.async_get_or_create(
+        domain="update", platform="demo", unique_id="u2", device_id=device.id
+    )
+
+    block = await scanner.async_block_device(device_id=device.id, reason="")
+    await hass.async_block_till_done()
+
+    await scanner.async_scan_block(block_id=block.id, per_device_timeout_seconds=1)
+
+    updated = registry.get_block(block.id)
+    assert updated.last_scan_status == "timeout"
+
+
+async def test_scan_block_entity_gone(hass):
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    entry = await _setup_integration(hass)
+    runtime = hass.data[DOMAIN][entry.entry_id]
+    scanner = runtime["scanner"]
+    registry = runtime["registry"]
+
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+    device = dev_reg.async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={("demo", "scan3")}
+    )
+    update = ent_reg.async_get_or_create(
+        domain="update", platform="demo", unique_id="u3", device_id=device.id
+    )
+
+    block = await scanner.async_block_device(device_id=device.id, reason="")
+    await hass.async_block_till_done()
+
+    # Remove entity before scan.
+    ent_reg.async_remove(update.entity_id)
+
+    await scanner.async_scan_block(block_id=block.id, per_device_timeout_seconds=1)
+
+    updated = registry.get_block(block.id)
+    assert updated.last_scan_status == "entity_gone"

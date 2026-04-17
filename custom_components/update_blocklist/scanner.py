@@ -106,3 +106,88 @@ class Scanner:
         await self._registry.async_remove_block(block_id)
         await self._coordinator.async_request_refresh()
         return True
+
+    async def async_scan_block(
+        self, *, block_id: str, per_device_timeout_seconds: int
+    ) -> None:
+        """Re-enable entity → wait for latest_version → re-disable."""
+        block = self._registry.get_block(block_id)
+        if block is None:
+            _LOGGER.debug("Scan requested for unknown block %s", block_id)
+            return
+
+        ent_reg = er.async_get(self._hass)
+
+        # Find the first still-existing update entity for this block.
+        target_eid: str | None = None
+        for eid in block.update_entity_ids:
+            if ent_reg.async_get(eid) is not None:
+                target_eid = eid
+                break
+
+        if target_eid is None:
+            block.last_scan_at = datetime.now(UTC).isoformat()
+            block.last_scan_status = SCAN_STATUS_ENTITY_GONE
+            await self._registry.async_update_block(block)
+            await self._coordinator.async_request_refresh()
+            return
+
+        # Re-enable.
+        ent_reg.async_update_entity(target_eid, disabled_by=None)
+
+        # Pre-skip known latest to reduce the notification surface.
+        if block.last_known_version:
+            try:
+                await self._hass.services.async_call(
+                    "update", "skip", {"entity_id": target_eid}, blocking=False
+                )
+            except Exception:  # noqa: BLE001
+                _LOGGER.debug("update.skip not available yet for %s", target_eid)
+
+        # Wait for latest_version to populate.
+        new_version = await self._wait_for_latest_version(
+            target_eid, per_device_timeout_seconds
+        )
+
+        block.last_scan_at = datetime.now(UTC).isoformat()
+        if new_version is None:
+            block.last_scan_status = SCAN_STATUS_TIMEOUT
+        else:
+            block.last_known_version = new_version
+            block.last_scan_status = SCAN_STATUS_OK
+
+        # Re-disable.
+        ent_reg.async_update_entity(
+            target_eid, disabled_by=er.RegistryEntryDisabler.INTEGRATION
+        )
+
+        await self._registry.async_update_block(block)
+        await self._coordinator.async_request_refresh()
+
+    async def _wait_for_latest_version(
+        self, entity_id: str, timeout_seconds: int
+    ) -> str | None:
+        """Wait until the entity reports a `latest_version` attribute, or timeout."""
+        done = asyncio.Event()
+        captured: dict[str, str] = {}
+
+        @callback
+        def _on_change(event: Event) -> None:
+            new_state = event.data.get("new_state")
+            if new_state and new_state.attributes.get("latest_version"):
+                captured["v"] = new_state.attributes["latest_version"]
+                done.set()
+
+        # Fast path: state already exists.
+        state = self._hass.states.get(entity_id)
+        if state and state.attributes.get("latest_version"):
+            return state.attributes["latest_version"]
+
+        remove = async_track_state_change_event(self._hass, [entity_id], _on_change)
+        try:
+            await asyncio.wait_for(done.wait(), timeout=timeout_seconds)
+            return captured.get("v")
+        except asyncio.TimeoutError:
+            return None
+        finally:
+            remove()
