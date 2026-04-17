@@ -106,14 +106,53 @@ For integrations with a compiled/bundled frontend, use `zip_release: true` + `fi
 
 ## 5. Brand Assets
 
-Location: `brands/` at repository root.
+> **Updated 2026-04-17** — Since HA 2026.3, the `home-assistant/brands` repository
+> **no longer accepts PRs for custom integrations**. Brand assets are now shipped
+> directly inside the integration directory and served via HA's local brands proxy API.
+> Source: https://developers.home-assistant.io/blog/2026/02/24/brands-proxy-api
 
-| File | Required | Notes |
-|---|---|---|
-| `icon.png` | **Yes** | Square icon, at least 256×256 px, transparent background |
-| `logo.png` | No | Wider logo variant |
+### New process (HA 2026.3+)
 
-These are checked by the "Check brands" step when the PR to hacs/default is submitted.
+Place brand images in `custom_components/{domain}/brand/` inside your repository.
+They are picked up automatically — no external repo PR needed.
+
+```
+custom_components/
+  your_domain/
+    brand/
+      icon.png          ← 256×256 px, transparent background
+      icon@2x.png       ← 512×512 px
+      logo.png          ← max 256 px tall, transparent background
+      logo@2x.png       ← max 512 px tall
+      dark_icon.png     ← optional dark-theme variant
+      dark_logo.png     ← optional dark-theme variant
+```
+
+All files are optional but `icon.png` is the minimum expected. These files are
+included automatically in the release zip (they live inside `custom_components/`).
+
+### HACS validation
+
+The HACS action checks `custom_components/{domain}/brand/icon.png` first.
+If absent, it falls back to the `home-assistant/brands` CDN. Because the brands repo
+no longer accepts custom integration PRs, the `brand/icon.png` path **must** exist
+in the repository for the HACS brands check to pass.
+
+### Generating PNGs from SVG
+
+```bash
+uv run --with cairosvg python3 - <<'EOF'
+import cairosvg, pathlib
+
+svg = "logo/logo.svg"
+out = pathlib.Path("custom_components/your_domain/brand")
+out.mkdir(exist_ok=True)
+
+for name, size in [("icon.png",256),("icon@2x.png",512),("logo.png",256),("logo@2x.png",512)]:
+    cairosvg.svg2png(url=svg, write_to=str(out/name), output_width=size, output_height=size)
+    print(f"Generated {out/name}")
+EOF
+```
 
 ---
 
@@ -238,7 +277,7 @@ Use this before cutting a release and opening the PR to hacs/default:
 
 - [ ] `manifest.json` has all required fields, version is a semantic version (`1.0.0`)
 - [ ] `hacs.json` has at least `name`
-- [ ] `brands/icon.png` exists (256×256 px minimum, transparent background)
+- [ ] `custom_components/{domain}/brand/icon.png` exists (256×256 px, transparent background) — **do NOT submit to home-assistant/brands, that repo no longer accepts custom integration PRs (HA 2026.3+)**
 - [ ] `README.md` (or `info.md`) exists with setup instructions
 - [ ] `translations/en.json` exists and matches `strings.json`
 - [ ] GitHub repo description is a real sentence
