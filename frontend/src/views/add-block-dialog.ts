@@ -23,10 +23,12 @@ export class AddBlockDialog extends LitElement {
           Device to block
           <select @change=${(e: Event) => (this._deviceId = (e.target as HTMLSelectElement).value)}>
             <option value="">— select —</option>
-            ${this.candidates.map(
-              (c) =>
-                html`<option value=${c.device_id}>${c.name} (${c.manufacturer ?? ""} ${c.model ?? ""})</option>`,
-            )}
+            ${[...this.candidates]
+              .sort((a, b) => (a.name ?? "").localeCompare(b.name ?? ""))
+              .map(
+                (c) =>
+                  html`<option value=${c.device_id}>${c.name} (${c.manufacturer ?? ""} ${c.model ?? ""})</option>`,
+              )}
           </select>
         </label>
         <label>
