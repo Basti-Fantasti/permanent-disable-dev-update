@@ -100,6 +100,36 @@ async def test_startup_re_disables_blocked_entity_that_was_left_enabled(hass):
     assert ent_reg.async_get(update.entity_id).disabled_by == er.RegistryEntryDisabler.INTEGRATION
 
 
+async def test_user_manually_reenables_marks_block_as_user_overridden(hass):
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    runtime = hass.data[DOMAIN][entry.entry_id]
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+    device = dev_reg.async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={("demo", "userov")}
+    )
+    update = ent_reg.async_get_or_create(
+        domain="update", platform="demo", unique_id="u", device_id=device.id
+    )
+
+    block = await runtime["scanner"].async_block_device(device_id=device.id, reason="")
+    await hass.async_block_till_done()
+
+    # User manually re-enables through UI — simulate by direct registry update.
+    ent_reg.async_update_entity(update.entity_id, disabled_by=None)
+    await hass.async_block_till_done()
+
+    updated = runtime["registry"].get_block(block.id)
+    assert updated.status == "user_overridden"
+
+
 async def test_setup_stores_effective_options(hass):
     from custom_components.update_blocklist.const import (
         CONF_SCAN_START_TIME,

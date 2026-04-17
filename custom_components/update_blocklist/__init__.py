@@ -79,6 +79,37 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     await scanner.async_detect_rediscovery()
 
+    # Task 41b: Listen for user-initiated re-enables of blocked entities.
+    from homeassistant.helpers.entity_registry import EVENT_ENTITY_REGISTRY_UPDATED
+    from .const import BLOCK_STATUS_USER_OVERRIDDEN
+
+    _ent_reg_listener = er.async_get(hass)
+
+    async def _on_entity_registry_updated(event) -> None:
+        if event.data.get("action") != "update":
+            return
+        changes: dict = event.data.get("changes", {})
+        if "disabled_by" not in changes:
+            return
+
+        entity_id = event.data.get("entity_id")
+        block = registry.find_block_for_entity(entity_id)
+        if block is None or block.status != "active":
+            return
+
+        ent_entry = _ent_reg_listener.async_get(entity_id)
+        if ent_entry is None:
+            return
+
+        if ent_entry.disabled_by is None:
+            block.status = BLOCK_STATUS_USER_OVERRIDDEN
+            await registry.async_update_block(block)
+            await coordinator.async_request_refresh()
+
+    entry.async_on_unload(
+        hass.bus.async_listen(EVENT_ENTITY_REGISTRY_UPDATED, _on_entity_registry_updated)
+    )
+
     # Register services and views once on first (only) setup.
     if len(hass.data[DOMAIN]) == 1:
         from .services import async_register_services, async_unregister_services
