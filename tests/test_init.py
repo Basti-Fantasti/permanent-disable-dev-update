@@ -38,6 +38,10 @@ async def test_removing_config_entry_reenables_all_entities(hass):
     from homeassistant.helpers import device_registry as dr
     from homeassistant.helpers import entity_registry as er
 
+    # Device belongs to a separate integration so it survives our entry removal.
+    device_entry = MockConfigEntry(domain="demo", data={}, options={})
+    device_entry.add_to_hass(hass)
+
     entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
     entry.add_to_hass(hass)
     assert await hass.config_entries.async_setup(entry.entry_id)
@@ -47,7 +51,7 @@ async def test_removing_config_entry_reenables_all_entities(hass):
     dev_reg = dr.async_get(hass)
     ent_reg = er.async_get(hass)
     device = dev_reg.async_get_or_create(
-        config_entry_id=entry.entry_id, identifiers={("demo", "u_all")}
+        config_entry_id=device_entry.entry_id, identifiers={("demo", "u_all")}
     )
     update = ent_reg.async_get_or_create(
         domain="update", platform="demo", unique_id="u", device_id=device.id

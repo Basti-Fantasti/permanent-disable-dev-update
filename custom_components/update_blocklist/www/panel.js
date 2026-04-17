@@ -584,7 +584,7 @@ class Vt {
       }
     });
     if (!i.ok) {
-      const r = typeof i.text == "function" ? await i.text() : "";
+      const r = await i.text().catch(() => "");
       throw new Error(`${i.status} ${r}`);
     }
     if (i.status !== 204)

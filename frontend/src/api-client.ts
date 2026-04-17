@@ -53,7 +53,7 @@ export class BlocklistApi {
       },
     });
     if (!resp.ok) {
-      const body = typeof (resp as any).text === "function" ? await (resp as any).text() : "";
+      const body = await resp.text().catch(() => "");
       throw new Error(`${resp.status} ${body}`);
     }
     if (resp.status === 204) return undefined as T;
