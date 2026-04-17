@@ -20,3 +20,15 @@ async def test_setup_and_unload_entry(hass):
     await hass.async_block_till_done()
 
     assert entry.entry_id not in hass.data[DOMAIN]
+
+
+async def test_setup_creates_registry_in_hass_data(hass):
+    from custom_components.update_blocklist.registry import BlockRegistry
+
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    runtime = hass.data[DOMAIN][entry.entry_id]
+    assert isinstance(runtime["registry"], BlockRegistry)
