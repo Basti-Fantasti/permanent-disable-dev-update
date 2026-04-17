@@ -98,6 +98,27 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     return unloaded
 
 
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Clean up when the integration is removed from HA."""
+    from homeassistant.helpers import entity_registry as er
+
+    # Runtime is already gone at this point; reload registry straight from store.
+    from .registry import BlockRegistry
+
+    registry = BlockRegistry(hass)
+    await registry.async_load()
+
+    ent_reg = er.async_get(hass)
+    for block in registry.all_blocks():
+        for eid in block.update_entity_ids:
+            existing = ent_reg.async_get(eid)
+            if existing and existing.disabled_by == er.RegistryEntryDisabler.INTEGRATION:
+                ent_reg.async_update_entity(eid, disabled_by=None)
+
+    # Purge storage file by saving empty data (Store does not expose a delete).
+    await registry._store.async_save({"blocks": [], "pending_rediscovery": []})
+
+
 async def _async_options_reload(hass: HomeAssistant, entry: ConfigEntry) -> None:
     """Reload the integration when options change."""
     await hass.config_entries.async_reload(entry.entry_id)

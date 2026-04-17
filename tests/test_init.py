@@ -34,6 +34,34 @@ async def test_setup_creates_registry_in_hass_data(hass):
     assert isinstance(runtime["registry"], BlockRegistry)
 
 
+async def test_removing_config_entry_reenables_all_entities(hass):
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    entry = MockConfigEntry(domain=DOMAIN, data={}, options={})
+    entry.add_to_hass(hass)
+    assert await hass.config_entries.async_setup(entry.entry_id)
+    await hass.async_block_till_done()
+
+    runtime = hass.data[DOMAIN][entry.entry_id]
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+    device = dev_reg.async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={("demo", "u_all")}
+    )
+    update = ent_reg.async_get_or_create(
+        domain="update", platform="demo", unique_id="u", device_id=device.id
+    )
+
+    await runtime["scanner"].async_block_device(device_id=device.id, reason="")
+    assert ent_reg.async_get(update.entity_id).disabled_by == er.RegistryEntryDisabler.INTEGRATION
+
+    assert await hass.config_entries.async_remove(entry.entry_id)
+    await hass.async_block_till_done()
+
+    assert ent_reg.async_get(update.entity_id).disabled_by is None
+
+
 async def test_setup_stores_effective_options(hass):
     from custom_components.update_blocklist.const import (
         CONF_SCAN_START_TIME,
