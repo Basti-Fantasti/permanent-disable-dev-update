@@ -184,3 +184,43 @@ async def test_scan_endpoint_with_block_id_triggers_scan_block(hass, hass_client
     assert resp.status == 202
     await hass.async_block_till_done()
     assert calls == ["abc"]
+
+
+async def test_resolve_rediscovery_accept_updates_block(hass, hass_client):
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    entry = await _setup(hass)
+    runtime = hass.data[DOMAIN][entry.entry_id]
+    registry = runtime["registry"]
+
+    # Old orphan block.
+    block = await registry.async_add_block(
+        device_id="gone", update_entity_ids=["update.old"], unique_ids=["M1"],
+        fingerprint={"manufacturer": "", "model": "", "name": ""},
+        reason="", last_known_version=None,
+    )
+    await registry.async_set_pending_rediscovery(
+        [{"orphan_block_id": block.id, "candidate_device_id": "newdev",
+          "match_type": "unique_id", "detected_at": "2026-04-16T09:15:00Z"}]
+    )
+
+    # New device + update entity exists.
+    dev_reg = dr.async_get(hass)
+    ent_reg = er.async_get(hass)
+    new_dev = dev_reg.async_get_or_create(
+        config_entry_id=entry.entry_id, identifiers={("demo", "newdev")}
+    )
+    ent_reg.async_get_or_create(
+        domain="update", platform="demo", unique_id="M1", device_id=new_dev.id
+    )
+
+    client = await hass_client()
+    resp = await client.post(
+        f"/api/{DOMAIN}/rediscovery/resolve",
+        json={"orphan_block_id": block.id, "candidate_device_id": new_dev.id, "action": "accept"},
+    )
+    assert resp.status == 200
+
+    updated = registry.get_block(block.id)
+    assert updated.device_id == new_dev.id

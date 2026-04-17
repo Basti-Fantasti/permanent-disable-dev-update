@@ -182,6 +182,41 @@ class ScanView(_BaseView):
         return web.Response(status=202)
 
 
+class RediscoveryResolveView(_BaseView):
+    url = f"/api/{DOMAIN}/rediscovery/resolve"
+    name = f"api:{DOMAIN}:rediscovery:resolve"
+
+    async def post(self, request: web.Request) -> web.Response:
+        hass: HomeAssistant = request.app["hass"]
+        runtime = _runtime(hass)
+        if runtime is None:
+            return web.Response(status=404)
+
+        try:
+            payload = await request.json()
+        except ValueError:
+            return self.json_message("Invalid JSON", status_code=400)
+
+        schema = vol.Schema(
+            {
+                vol.Required("orphan_block_id"): str,
+                vol.Optional("candidate_device_id"): vol.Any(str, None),
+                vol.Required("action"): vol.In(["accept", "decline", "dismiss"]),
+            }
+        )
+        try:
+            data = schema(payload)
+        except vol.Invalid as exc:
+            return self.json_message(str(exc), status_code=400)
+
+        ok = await runtime["scanner"].async_resolve_rediscovery(
+            orphan_block_id=data["orphan_block_id"],
+            candidate_device_id=data.get("candidate_device_id"),
+            action=data["action"],
+        )
+        return web.Response(status=200 if ok else 404)
+
+
 def async_register_views(hass: HomeAssistant) -> None:
     hass.http.register_view(BlocksListView())
     hass.http.register_view(BlocksWriteView())
@@ -189,3 +224,4 @@ def async_register_views(hass: HomeAssistant) -> None:
     hass.http.register_view(OptionsView())
     hass.http.register_view(CandidatesView())
     hass.http.register_view(ScanView())
+    hass.http.register_view(RediscoveryResolveView())

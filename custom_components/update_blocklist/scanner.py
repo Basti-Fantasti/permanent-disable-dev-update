@@ -221,6 +221,60 @@ class Scanner:
             except Exception:  # noqa: BLE001
                 _LOGGER.exception("Scan failed for block %s", block.id)
 
+    async def async_resolve_rediscovery(
+        self, *, orphan_block_id: str, candidate_device_id: str | None, action: str
+    ) -> bool:
+        """Resolve a pending rediscovery item.
+
+        action:
+          - "accept": migrate the block to candidate_device_id, re-disable its entity
+          - "decline": delete the block
+          - "dismiss": remove the pending entry but keep the orphan block as-is
+        """
+        block = self._registry.get_block(orphan_block_id)
+        if block is None:
+            return False
+
+        pending = [
+            item
+            for item in self._registry.pending_rediscovery
+            if item["orphan_block_id"] != orphan_block_id
+        ]
+
+        if action == "decline":
+            await self._registry.async_remove_block(orphan_block_id)
+        elif action == "accept" and candidate_device_id is not None:
+            dev_reg = dr.async_get(self._hass)
+            ent_reg = er.async_get(self._hass)
+            device = dev_reg.async_get(candidate_device_id)
+            if device is None:
+                return False
+            update_entities = [
+                e.entity_id for e in ent_reg.entities.values()
+                if e.domain == "update" and e.device_id == candidate_device_id
+            ]
+            block.device_id = candidate_device_id
+            block.update_entity_ids = update_entities
+            block.unique_ids = [
+                e.unique_id for e in ent_reg.entities.values()
+                if e.domain == "update" and e.device_id == candidate_device_id and e.unique_id
+            ]
+            block.fingerprint = generate_fingerprint(
+                manufacturer=device.manufacturer,
+                model=device.model,
+                name=device.name_by_user or device.name,
+            )
+            await self._registry.async_update_block(block)
+            for eid in update_entities:
+                ent_reg.async_update_entity(
+                    eid, disabled_by=er.RegistryEntryDisabler.INTEGRATION
+                )
+        # "dismiss" path: pending list already pruned above.
+
+        await self._registry.async_set_pending_rediscovery(pending)
+        await self._coordinator.async_request_refresh()
+        return True
+
     def start_schedule(self):
         """Install the nightly scan trigger at options[CONF_SCAN_START_TIME].
 
