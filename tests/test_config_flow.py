@@ -84,3 +84,4 @@ async def test_options_flow_rejects_invalid_time(hass):
     )
     assert result["type"] == data_entry_flow.FlowResultType.FORM
     assert result["errors"] == {CONF_SCAN_START_TIME: "invalid_time"}
+
