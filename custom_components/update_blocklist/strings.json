@@ -1,0 +1,66 @@
+{
+  "title": "Update Blocklist",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Add Update Blocklist",
+        "description": "This integration lets you permanently block firmware updates for specific devices."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Already configured. Only a single Update Blocklist instance is allowed."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Scan window",
+        "description": "The integration briefly re-enables blocked update entities during this nightly window to refresh last-known version info, then re-disables them.",
+        "data": {
+          "scan_start_time": "Scan start time (HH:MM, 24h)",
+          "scan_max_duration_minutes": "Max scan duration (minutes)",
+          "per_device_timeout_seconds": "Per-device timeout (seconds)"
+        }
+      }
+    },
+    "error": {
+      "invalid_time": "Time must be in HH:MM (24h) format.",
+      "invalid_duration": "Duration must be at least 1 minute.",
+      "invalid_timeout": "Timeout must be at least 10 seconds."
+    }
+  },
+  "services": {
+    "block": {
+      "name": "Block device updates",
+      "description": "Permanently block updates for a device.",
+      "fields": {
+        "device_id": {
+          "name": "Device",
+          "description": "Home Assistant device ID to block."
+        },
+        "reason": {
+          "name": "Reason",
+          "description": "Free-form note explaining why this device is blocked."
+        }
+      }
+    },
+    "unblock": {
+      "name": "Remove block",
+      "description": "Remove a previously added block.",
+      "fields": {
+        "block_id": {
+          "name": "Block ID",
+          "description": "Internal block ID."
+        }
+      }
+    },
+    "scan_now": {
+      "name": "Scan a single block",
+      "description": "Refresh the shadow version for one block immediately."
+    },
+    "scan_all": {
+      "name": "Scan all blocks",
+      "description": "Run a full scan cycle across all blocks immediately."
+    }
+  }
+}

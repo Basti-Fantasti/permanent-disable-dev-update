@@ -1,0 +1,66 @@
+{
+  "title": "Update-Sperrliste",
+  "config": {
+    "step": {
+      "user": {
+        "title": "Update-Sperrliste hinzufügen",
+        "description": "Diese Integration sperrt dauerhaft Firmware-Updates für ausgewählte Geräte."
+      }
+    },
+    "abort": {
+      "single_instance_allowed": "Bereits eingerichtet. Es ist nur eine Instanz der Update-Sperrliste erlaubt."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Scan-Fenster",
+        "description": "In diesem nächtlichen Zeitfenster aktiviert die Integration blockierte Update-Entitäten kurz, um die zuletzt bekannte Version zu erfassen, und deaktiviert sie anschließend wieder.",
+        "data": {
+          "scan_start_time": "Scan-Startzeit (HH:MM, 24h)",
+          "scan_max_duration_minutes": "Maximale Scan-Dauer (Minuten)",
+          "per_device_timeout_seconds": "Timeout pro Gerät (Sekunden)"
+        }
+      }
+    },
+    "error": {
+      "invalid_time": "Zeit muss im Format HH:MM (24h) sein.",
+      "invalid_duration": "Dauer muss mindestens 1 Minute betragen.",
+      "invalid_timeout": "Timeout muss mindestens 10 Sekunden betragen."
+    }
+  },
+  "services": {
+    "block": {
+      "name": "Geräte-Updates sperren",
+      "description": "Sperrt dauerhaft Updates für ein Gerät.",
+      "fields": {
+        "device_id": {
+          "name": "Gerät",
+          "description": "Die Geräte-ID von Home Assistant."
+        },
+        "reason": {
+          "name": "Grund",
+          "description": "Freitext-Notiz, warum dieses Gerät gesperrt ist."
+        }
+      }
+    },
+    "unblock": {
+      "name": "Sperre entfernen",
+      "description": "Entfernt eine zuvor gesetzte Sperre.",
+      "fields": {
+        "block_id": {
+          "name": "Sperr-ID",
+          "description": "Interne Sperr-ID."
+        }
+      }
+    },
+    "scan_now": {
+      "name": "Einzelne Sperre scannen",
+      "description": "Aktualisiert die Schatten-Version für eine Sperre sofort."
+    },
+    "scan_all": {
+      "name": "Alle Sperren scannen",
+      "description": "Führt einen vollständigen Scan-Zyklus für alle Sperren sofort aus."
+    }
+  }
+}
