@@ -27,7 +27,7 @@ jobs:
       - name: Zip integration
         run: |
           cd custom_components/update_blocklist
-          zip -r /tmp/update_blocklist.zip .
+          zip -r /tmp/update_blocklist.zip . -x "*__pycache__*"
       - name: Create GitHub release
         uses: softprops/action-gh-release@v2
         with:
