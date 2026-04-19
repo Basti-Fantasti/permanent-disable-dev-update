@@ -60,4 +60,66 @@ describe("<blocks-list>", () => {
     expect(events.length).toBe(1);
     expect(events[0].detail).toEqual({ block_id: "b1" });
   });
+
+  it("detail dialog shows the current installed version", async () => {
+    const blocks = [
+      {
+        id: "b1",
+        device_id: "d1",
+        reason: "",
+        last_known_version: "2.0.0",
+        installed_version: "1.9.0",
+        update_entity_ids: [],
+        unique_ids: [],
+        fingerprint: { manufacturer: "", model: "", name: "Dev" },
+        created_at: "",
+        last_scan_at: null,
+        last_scan_status: "ok",
+        status: "active",
+      },
+    ];
+    const el = await fixture<BlocksListView>(
+      tplHtml`<blocks-list .blocks=${blocks}></blocks-list>`,
+    );
+    const link = el.shadowRoot!.querySelector(".device-link") as HTMLElement;
+    link.click();
+    await el.updateComplete;
+
+    const text = el.shadowRoot!.textContent ?? "";
+    expect(text).toMatch(/Current version/);
+    expect(text).toMatch(/1\.9\.0/);
+    expect(text).toMatch(/Latest version seen/);
+    expect(text).toMatch(/2\.0\.0/);
+  });
+
+  it("detail dialog shows 'unknown' current version when installed_version is null", async () => {
+    const blocks = [
+      {
+        id: "b1",
+        device_id: "d1",
+        reason: "",
+        last_known_version: "2.0.0",
+        installed_version: null,
+        update_entity_ids: [],
+        unique_ids: [],
+        fingerprint: { manufacturer: "", model: "", name: "Dev" },
+        created_at: "",
+        last_scan_at: null,
+        last_scan_status: "ok",
+        status: "active",
+      },
+    ];
+    const el = await fixture<BlocksListView>(
+      tplHtml`<blocks-list .blocks=${blocks}></blocks-list>`,
+    );
+    (el.shadowRoot!.querySelector(".device-link") as HTMLElement).click();
+    await el.updateComplete;
+
+    const rows = el.shadowRoot!.querySelectorAll(".detail-row");
+    const currentRow = Array.from(rows).find((r) =>
+      r.textContent?.includes("Current version"),
+    );
+    expect(currentRow).toBeTruthy();
+    expect(currentRow!.textContent).toMatch(/unknown/);
+  });
 });

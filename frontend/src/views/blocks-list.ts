@@ -99,7 +99,8 @@ export class BlocksListView extends LitElement {
       ["Device ID", b.device_id],
       ["Status", b.status],
       ["Reason", b.reason || "—"],
-      ["Last version", b.last_known_version ?? "unknown"],
+      ["Current version", b.installed_version ?? "unknown"],
+      ["Latest version seen", b.last_known_version ?? "unknown"],
       ["Last scan", b.last_scan_at ?? "never"],
       ["Created", b.created_at],
     ];

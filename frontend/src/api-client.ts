@@ -9,6 +9,7 @@ export interface Block {
   reason: string;
   created_at: string;
   last_known_version: string | null;
+  installed_version: string | null;
   last_scan_at: string | null;
   last_scan_status: string;
   status: string;
