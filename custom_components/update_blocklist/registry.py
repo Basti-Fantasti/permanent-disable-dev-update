@@ -29,6 +29,7 @@ class Block:
     last_scan_at: str | None
     last_scan_status: str
     status: str = BLOCK_STATUS_ACTIVE
+    installed_version: str | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any]) -> Block:
@@ -44,6 +45,7 @@ class Block:
             last_scan_at=data.get("last_scan_at"),
             last_scan_status=data.get("last_scan_status", SCAN_STATUS_NEVER_SCANNED),
             status=data.get("status", BLOCK_STATUS_ACTIVE),
+            installed_version=data.get("installed_version"),
         )
 
     def to_dict(self) -> dict[str, Any]:
@@ -82,6 +84,7 @@ class BlockRegistry:
         fingerprint: Fingerprint,
         reason: str,
         last_known_version: str | None,
+        installed_version: str | None = None,
     ) -> Block:
         if any(b.device_id == device_id for b in self._blocks.values()):
             raise ValueError(f"Device {device_id!r} is already blocked")
@@ -98,6 +101,7 @@ class BlockRegistry:
             last_scan_at=None,
             last_scan_status=SCAN_STATUS_NEVER_SCANNED,
             status=BLOCK_STATUS_ACTIVE,
+            installed_version=installed_version,
         )
         self._blocks[block.id] = block
         await self._persist()

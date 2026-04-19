@@ -175,3 +175,41 @@ async def test_match_rediscovery_by_fingerprint(hass):
     )
     candidates = reg.match_rediscovery_candidates(block, dev_reg, ent_reg)
     assert {"device_id": new_dev.id, "match_type": "fingerprint"} in candidates
+
+
+def test_block_from_dict_defaults_installed_version_to_none():
+    """Blocks persisted before 1.0.2 have no installed_version key; loading must default to None."""
+    from custom_components.update_blocklist.registry import Block
+
+    stored = {
+        "id": "b1",
+        "device_id": "d1",
+        "update_entity_ids": ["update.a"],
+        "unique_ids": ["u1"],
+        "fingerprint": {"manufacturer": "m", "model": "mo", "name": "n"},
+        "reason": "r",
+        "created_at": "2026-04-19T00:00:00+00:00",
+        "last_known_version": "1.0.0",
+        "last_scan_at": None,
+        "last_scan_status": "never",
+        "status": "active",
+    }
+    block = Block.from_dict(stored)
+    assert block.installed_version is None
+
+
+async def test_async_add_block_persists_installed_version(hass):
+    from custom_components.update_blocklist.registry import BlockRegistry
+
+    registry = BlockRegistry(hass)
+    await registry.async_load()
+    block = await registry.async_add_block(
+        device_id="d-new",
+        update_entity_ids=["update.x"],
+        unique_ids=["u-x"],
+        fingerprint={"manufacturer": "m", "model": "mo", "name": "n"},
+        reason="",
+        last_known_version="2.0.0",
+        installed_version="1.9.0",
+    )
+    assert block.installed_version == "1.9.0"
