@@ -758,9 +758,18 @@ M.styles = N`
       overflow: auto;
     }
     .detail-dialog h3 { margin: 0 0 12px; }
-    .detail-row { display: flex; padding: 6px 0; border-bottom: 1px solid var(--divider-color, #eee); }
-    .detail-label { font-weight: 600; min-width: 120px; color: var(--secondary-text-color, #666); }
-    .detail-value { word-break: break-all; }
+    .detail-row {
+      display: flex;
+      gap: 16px;
+      padding: 6px 0;
+      border-bottom: 1px solid var(--divider-color, #eee);
+    }
+    .detail-label {
+      font-weight: 600;
+      flex: 0 0 140px;
+      color: var(--secondary-text-color, #666);
+    }
+    .detail-value { word-break: break-all; flex: 1; }
     .detail-actions { margin-top: 16px; display: flex; justify-content: flex-end; }
   `;
 et([

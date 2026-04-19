@@ -9,6 +9,10 @@
 ### Added
 - Integration version is displayed next to the panel title, so it is easy to confirm which release is running after an update.
 
+### Changed
+- Block detail rows now use a fixed label column with proper spacing, so long values (like "Latest version seen") stay visually separated from the label.
+- Verified that the panel is comfortably readable on both desktop and mobile viewports.
+
 ## [1.0.1] - 2026-04-18
 
 ### Fixed

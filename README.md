@@ -89,6 +89,10 @@ Edit these in Settings → Devices & Services → Update Blocklist → Configure
 - `sensor.update_blocklist_next_scan_at`
 - `button.update_blocklist_scan_all`
 
+## Tested environments
+
+The panel is verified to be readable and usable on both desktop and mobile viewports. The add-block and block-detail dialogs fit phone screens and the block detail rows have proper label/value spacing.
+
 ## Limitations
 
 - During the scan window, a brief update notification may appear for a device
