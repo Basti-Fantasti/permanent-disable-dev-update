@@ -25,14 +25,19 @@ export class BlocksListView extends LitElement {
       background: rgba(0, 0, 0, 0.3);
       display: grid;
       place-items: center;
+      padding: 16px;
+      box-sizing: border-box;
       z-index: 10;
     }
     .detail-dialog {
       background: var(--card-background-color, white);
       border-radius: 8px;
       padding: 20px;
-      min-width: 360px;
-      max-width: 500px;
+      box-sizing: border-box;
+      width: min(500px, calc(100vw - 32px));
+      max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 32px);
+      overflow: auto;
     }
     .detail-dialog h3 { margin: 0 0 12px; }
     .detail-row { display: flex; padding: 6px 0; border-bottom: 1px solid var(--divider-color, #eee); }

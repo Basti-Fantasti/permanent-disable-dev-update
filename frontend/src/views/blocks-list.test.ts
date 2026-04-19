@@ -122,4 +122,11 @@ describe("<blocks-list>", () => {
     expect(currentRow).toBeTruthy();
     expect(currentRow!.textContent).toMatch(/unknown/);
   });
+
+  it("detail dialog does not use a fixed desktop minimum width", async () => {
+    const { BlocksListView } = await import("./blocks-list");
+    const cssText = (BlocksListView as unknown as { styles: { cssText: string } }).styles.cssText;
+    expect(cssText).not.toMatch(/min-width:\s*360px/);
+    expect(cssText).not.toMatch(/min-width:\s*400px/);
+  });
 });

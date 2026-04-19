@@ -9,11 +9,17 @@ export class AddBlockDialog extends LitElement {
   @state() private _reason = "";
 
   static styles = css`
-    :host { display: block; padding: 16px; }
+    :host { display: block; padding: 16px; box-sizing: border-box; }
     form { display: flex; flex-direction: column; gap: 12px; }
     label { font-weight: 600; }
-    select, textarea { padding: 8px; font: inherit; }
-    .actions { display: flex; gap: 8px; justify-content: flex-end; }
+    select, textarea {
+      padding: 8px;
+      font: inherit;
+      box-sizing: border-box;
+      max-width: 100%;
+      width: 100%;
+    }
+    .actions { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
   `;
 
   render() {

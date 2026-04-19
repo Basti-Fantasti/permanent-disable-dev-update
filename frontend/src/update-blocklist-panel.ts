@@ -64,11 +64,18 @@ export class UpdateBlocklistPanel extends LitElement {
       background: rgba(0, 0, 0, 0.3);
       display: grid;
       place-items: center;
+      padding: 16px;
+      box-sizing: border-box;
+      z-index: 10;
     }
     .dialog {
       background: var(--card-background-color, white);
       border-radius: 8px;
-      min-width: 400px;
+      box-sizing: border-box;
+      width: min(400px, calc(100vw - 32px));
+      max-width: calc(100vw - 32px);
+      max-height: calc(100vh - 32px);
+      overflow: auto;
     }
   `;
 

@@ -42,4 +42,12 @@ describe("<add-block-dialog>", () => {
     expect(events.length).toBe(1);
     expect(events[0].detail).toEqual({ device_id: "d1", reason: "because reasons" });
   });
+
+  it("does not enforce a desktop-only minimum width on its host", async () => {
+    const { AddBlockDialog } = await import("./add-block-dialog");
+    const cssText = (AddBlockDialog as unknown as { styles: { cssText: string } }).styles.cssText;
+    // The legacy fixed 400px/360px rules were the mobile bug; make sure they do not come back.
+    expect(cssText).not.toMatch(/min-width:\s*400px/);
+    expect(cssText).not.toMatch(/min-width:\s*360px/);
+  });
 });
