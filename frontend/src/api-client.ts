@@ -86,6 +86,10 @@ export class BlocklistApi {
     return this.request<Options>(`${BASE}/options`);
   }
 
+  getInfo(): Promise<{ version: string }> {
+    return this.request<{ version: string }>(`${BASE}/info`);
+  }
+
   scan(blockId?: string): Promise<void> {
     return this.request<void>(`${BASE}/scan`, {
       method: "POST",

@@ -25,6 +25,7 @@ export class UpdateBlocklistPanel extends LitElement {
   @state() private _options: Options | null = null;
   @state() private _showAdd = false;
   @state() private _error: string | null = null;
+  @state() private _version: string | null = null;
 
   private _api(): BlocklistApi {
     return new BlocklistApi(this.hass?.auth?.accessToken ?? "");
@@ -45,6 +46,17 @@ export class UpdateBlocklistPanel extends LitElement {
     h1 {
       margin: 0;
       font-size: 1.4em;
+    }
+    .title-group {
+      display: flex;
+      align-items: baseline;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+    .version {
+      font-size: 0.8em;
+      color: var(--secondary-text-color, #666);
+      font-variant-numeric: tabular-nums;
     }
     button.primary {
       background: var(--primary-color, #03a9f4);
@@ -86,13 +98,15 @@ export class UpdateBlocklistPanel extends LitElement {
 
   private async _refresh(): Promise<void> {
     try {
-      const [list, opts] = await Promise.all([
+      const [list, opts, info] = await Promise.all([
         this._api().listBlocks(),
         this._api().getOptions(),
+        this._api().getInfo(),
       ]);
       this._blocks = list.blocks;
       this._pending = list.pending_rediscovery;
       this._options = opts;
+      this._version = info.version || null;
     } catch (err) {
       this._error = (err as Error).message;
     }
@@ -149,7 +163,10 @@ export class UpdateBlocklistPanel extends LitElement {
   render() {
     return html`
       <header>
-        <h1>Update Blocklist</h1>
+        <div class="title-group">
+          <h1>Update Blocklist</h1>
+          ${this._version ? html`<span class="version" data-test="panel-version">v${this._version}</span>` : html``}
+        </div>
         <button class="primary" @click=${this._openAdd}>Add block</button>
       </header>
       ${this._error ? html`<div class="error">${this._error}</div>` : html``}

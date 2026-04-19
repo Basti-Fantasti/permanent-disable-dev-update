@@ -36,6 +36,18 @@ class BlocksListView(_BaseView):
         )
 
 
+class InfoView(_BaseView):
+    url = f"/api/{DOMAIN}/info"
+    name = f"api:{DOMAIN}:info"
+
+    async def get(self, request: web.Request) -> web.Response:
+        from homeassistant.loader import async_get_integration
+
+        hass: HomeAssistant = request.app["hass"]
+        integration = await async_get_integration(hass, DOMAIN)
+        return self.json({"version": integration.version or ""})
+
+
 class OptionsView(_BaseView):
     url = f"/api/{DOMAIN}/options"
     name = f"api:{DOMAIN}:options"
@@ -222,6 +234,7 @@ def async_register_views(hass: HomeAssistant) -> None:
     hass.http.register_view(BlocksWriteView())
     hass.http.register_view(BlockItemView())
     hass.http.register_view(OptionsView())
+    hass.http.register_view(InfoView())
     hass.http.register_view(CandidatesView())
     hass.http.register_view(ScanView())
     hass.http.register_view(RediscoveryResolveView())
