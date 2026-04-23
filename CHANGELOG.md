@@ -1,5 +1,11 @@
 # Changelog
 
+## [1.0.3] - 2026-04-23
+
+### Fixed
+- Browser no longer serves a cached copy of `panel.js` after an integration update. The panel's `module_url` now carries a `?v=<version>` suffix derived from the manifest, so each release ships a distinct URL.
+- Open panel tabs that were loaded before an update now show a reload banner when the loaded frontend version does not match the backend version, so users are no longer stuck interacting with a stale UI.
+
 ## [1.0.2] - 2026-04-19
 
 ### Fixed
