@@ -6,6 +6,7 @@ export interface Block {
   update_entity_ids: string[];
   unique_ids: string[];
   fingerprint: { manufacturer: string; model: string; name: string };
+  integration_domain: string | null;
   reason: string;
   created_at: string;
   last_known_version: string | null;
