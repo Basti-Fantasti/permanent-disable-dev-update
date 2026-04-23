@@ -14,6 +14,51 @@ def _runtime(hass: HomeAssistant) -> dict | None:
     return next(iter(data.values()), None) if data else None
 
 
+def _resolve_integration_domain(
+    hass: HomeAssistant,
+    device_id: str,
+    update_entity_ids: list[str],
+) -> str | None:
+    """Return the integration domain that owns the device's update entity.
+
+    Order of preference:
+      1. ``platform`` of the first resolvable entity in ``update_entity_ids``.
+      2. The device's primary config entry's domain.
+      3. ``None``.
+    """
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    ent_reg = er.async_get(hass)
+    for entity_id in update_entity_ids:
+        entry = ent_reg.async_get(entity_id)
+        if entry is not None and entry.platform:
+            return entry.platform
+
+    dev_reg = dr.async_get(hass)
+    device = dev_reg.async_get(device_id)
+    if device is None:
+        return None
+
+    config_entry_id = next(iter(device.config_entries), None)
+    if config_entry_id is None:
+        return None
+    config_entry = hass.config_entries.async_get_entry(config_entry_id)
+    return config_entry.domain if config_entry else None
+
+
+def _enrich_block(hass: HomeAssistant, block: dict) -> dict:
+    """Add derived fields (currently ``integration_domain``) to a block dict."""
+    return {
+        **block,
+        "integration_domain": _resolve_integration_domain(
+            hass,
+            block.get("device_id", ""),
+            list(block.get("update_entity_ids", [])),
+        ),
+    }
+
+
 class _BaseView(HomeAssistantView):
     requires_auth = True
 
@@ -30,7 +75,7 @@ class BlocksListView(_BaseView):
         data = runtime["coordinator"].data or {}
         return self.json(
             {
-                "blocks": data.get("blocks", []),
+                "blocks": [_enrich_block(hass, b) for b in data.get("blocks", [])],
                 "pending_rediscovery": data.get("pending_rediscovery", []),
             }
         )
@@ -93,7 +138,7 @@ class BlocksWriteView(_BaseView):
         except ValueError as exc:
             return self.json_message(str(exc), status_code=400)
 
-        return self.json(block.to_dict(), status_code=201)
+        return self.json(_enrich_block(hass, block.to_dict()), status_code=201)
 
 
 class BlockItemView(_BaseView):

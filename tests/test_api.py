@@ -226,3 +226,104 @@ async def test_resolve_rediscovery_accept_updates_block(hass, hass_client):
 
     updated = registry.get_block(block.id)
     assert updated.device_id == new_dev.id
+
+
+async def test_list_blocks_includes_integration_domain_from_update_entity(
+    hass, hass_client
+):
+    """integration_domain is taken from the platform of an update entity."""
+    from homeassistant.helpers import device_registry as dr
+    from homeassistant.helpers import entity_registry as er
+
+    entry = await _setup(hass)
+
+    # Pretend an `acme` integration owns an update entity attached to device d1.
+    acme_entry = MockConfigEntry(domain="acme", data={})
+    acme_entry.add_to_hass(hass)
+
+    dev_reg = dr.async_get(hass)
+    device = dev_reg.async_get_or_create(
+        config_entry_id=acme_entry.entry_id,
+        identifiers={("acme", "dev-1")},
+    )
+
+    ent_reg = er.async_get(hass)
+    ent_reg.async_get_or_create(
+        domain="update",
+        platform="acme",
+        unique_id="acme-update-1",
+        config_entry=acme_entry,
+        device_id=device.id,
+    )
+
+    runtime = hass.data[DOMAIN][entry.entry_id]
+    await runtime["registry"].async_add_block(
+        device_id=device.id,
+        update_entity_ids=[f"update.acme_update_1"],
+        unique_ids=[],
+        fingerprint={"manufacturer": "", "model": "", "name": ""},
+        reason="r",
+        last_known_version="1.0",
+    )
+    await runtime["coordinator"].async_request_refresh()
+
+    client = await hass_client()
+    resp = await client.get(f"/api/{DOMAIN}/blocks")
+    data = await resp.json()
+    assert data["blocks"][0]["integration_domain"] == "acme"
+
+
+async def test_list_blocks_integration_domain_falls_back_to_device_config_entry(
+    hass, hass_client
+):
+    """Falls back to the device's primary config entry domain when no update entity resolves."""
+    from homeassistant.helpers import device_registry as dr
+
+    entry = await _setup(hass)
+
+    acme_entry = MockConfigEntry(domain="acme", data={})
+    acme_entry.add_to_hass(hass)
+
+    dev_reg = dr.async_get(hass)
+    device = dev_reg.async_get_or_create(
+        config_entry_id=acme_entry.entry_id,
+        identifiers={("acme", "dev-2")},
+    )
+
+    runtime = hass.data[DOMAIN][entry.entry_id]
+    await runtime["registry"].async_add_block(
+        device_id=device.id,
+        update_entity_ids=["update.does_not_exist"],
+        unique_ids=[],
+        fingerprint={"manufacturer": "", "model": "", "name": ""},
+        reason="r",
+        last_known_version="1.0",
+    )
+    await runtime["coordinator"].async_request_refresh()
+
+    client = await hass_client()
+    resp = await client.get(f"/api/{DOMAIN}/blocks")
+    data = await resp.json()
+    assert data["blocks"][0]["integration_domain"] == "acme"
+
+
+async def test_list_blocks_integration_domain_is_none_when_unresolvable(
+    hass, hass_client
+):
+    """integration_domain is None when device cannot be found."""
+    entry = await _setup(hass)
+    runtime = hass.data[DOMAIN][entry.entry_id]
+    await runtime["registry"].async_add_block(
+        device_id="missing-device",
+        update_entity_ids=[],
+        unique_ids=[],
+        fingerprint={"manufacturer": "", "model": "", "name": ""},
+        reason="r",
+        last_known_version="1.0",
+    )
+    await runtime["coordinator"].async_request_refresh()
+
+    client = await hass_client()
+    resp = await client.get(f"/api/{DOMAIN}/blocks")
+    data = await resp.json()
+    assert data["blocks"][0]["integration_domain"] is None
