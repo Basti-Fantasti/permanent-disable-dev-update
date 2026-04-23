@@ -1,5 +1,15 @@
 # Changelog
 
+## [1.1.0] - 2026-04-23
+
+### Added
+- Each block in the panel's blocks table now shows the owning integration's brand icon at the start of the row, with a generic device icon as fallback when the integration cannot be determined.
+- New "Pinned version" column shows the firmware version currently installed on the blocked device, alongside the existing "Last known version" column.
+
+### Changed
+- Long block reasons now wrap onto multiple lines so the rest of the row stays aligned.
+- Block detail dialog renames "Current version" to "Pinned version" for consistency with the new column.
+
 ## [1.0.3] - 2026-04-23
 
 ### Fixed
