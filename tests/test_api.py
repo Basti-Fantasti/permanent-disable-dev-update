@@ -259,7 +259,7 @@ async def test_list_blocks_includes_integration_domain_from_update_entity(
     runtime = hass.data[DOMAIN][entry.entry_id]
     await runtime["registry"].async_add_block(
         device_id=device.id,
-        update_entity_ids=[f"update.acme_update_1"],
+        update_entity_ids=["update.acme_update_1"],
         unique_ids=[],
         fingerprint={"manufacturer": "", "model": "", "name": ""},
         reason="r",
